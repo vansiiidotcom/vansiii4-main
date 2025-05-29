@@ -21,17 +21,17 @@ const Navbar = ({ onCategoryChange, selectedCategory }: NavbarProps) => {
     { title: 'Blogs', path: '/blog' },
     { title: 'Contact', path: '/contact' },
     { title: 'Meet the Team', path: '/team' },
-    ...(location.pathname === '/admin' ? [{ title: 'Admin', path: '/admin' }] : [])
+    ...(isAdmin ? [{ title: 'Admin', path: '/admin' }] : [])
   ];
  
   const categories = [
-    "All",
-    "Marketing",
-    "Branding",
-    "UI/UX",
-    "Videography",
-    "Graphic Design",
-    "Photography"
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    ""
   ];
 
   return (
