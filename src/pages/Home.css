@@ -1,0 +1,121 @@
+/* Home.css */
+.home-container {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.hero {
+  height: 100vh;
+  background-image: url('/path/to/hero-image.jpg');
+  background-size: cover;
+  background-position: center;
+  color: #FAFAF9;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.hero-overlay {
+  background: rgba(16, 16, 16, 0.5); /* Updated to #101010 */
+  padding: 20px;
+}
+
+.hero-title {
+  font-size: 3em;
+  margin-bottom: 10px;
+}
+
+.hero-subtitle {
+  font-size: 1.5em;
+  margin-bottom: 20px;
+}
+
+.cta-button {
+  background-color: #FF5A73;
+  color: #FAFAF9;
+  padding: 10px 20px;
+  text-decoration: none;
+  border-radius: 5px;
+  font-size: 1.2em;
+}
+
+.services {
+  padding: 50px 20px;
+  background-color: #f4f4f4;
+}
+
+.services-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.service-card {
+  background-color: #FAFAF9;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(16, 16, 16, 0.1); /* Updated to #101010 */
+}
+
+.portfolio-preview {
+  padding: 50px 20px;
+}
+
+.portfolio-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.portfolio-item img {
+  width: 100%;
+  border-radius: 10px;
+}
+
+.testimonials {
+  padding: 50px 20px;
+  background-color: #f4f4f4;
+}
+
+.testimonial-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.contact {
+  padding: 50px 20px;
+}
+
+.contact-form input,
+.contact-form textarea {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.contact-form button {
+  background-color: #FF5A73;
+  color: #FAFAF9;
+  padding: 10px 20px;
+  border-radius: 5px;
+  border: none;
+}
+
+.footer {
+  background-color: #333;
+  color: #FAFAF9;
+  padding: 20px 0;
+  text-align: center;
+}
+
+.footer-links a {
+  color: #FAFAF9;
+  margin: 0 15px;
+  text-decoration: none;
+}
