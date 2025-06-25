@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, Check, X, Plus } from 'lucide-react';
+import { Trash2, Check, X, Plus, Edit2 } from 'lucide-react';
 
 interface Project {
   id: string;
@@ -79,6 +79,9 @@ const AdminDashboard = () => {
     image: '',
     content: '',
   });
+  const [editProject, setEditProject] = useState<Project | null>(null);
+  const [editArtwork, setEditArtwork] = useState<Artwork | null>(null);
+  const [editBlogPost, setEditBlogPost] = useState<BlogPost | null>(null);
 
   useEffect(() => {
     if (!isLoading && !isAdmin) {
@@ -143,7 +146,7 @@ const AdminDashboard = () => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('upload_preset', 'portfolio_upload');
-    formData.append('folder', `portfolio/${activeTab.toLowerCase()}`); // Store in respective folders
+    formData.append('folder', `portfolio/${activeTab.toLowerCase()}`);
 
     try {
       const response = await fetch('https://api.cloudinary.com/v1_1/vansiii/image/upload', {
@@ -167,7 +170,11 @@ const AdminDashboard = () => {
     const file = files[0];
     const url = await uploadImageToCloudinary(file);
     if (url) {
-      setNewProject((prev) => ({ ...prev, images: [...prev.images, url] }));
+      if (editProject) {
+        setEditProject((prev) => prev ? ({ ...prev, images: [...prev.images, url] }) : null);
+      } else {
+        setNewProject((prev) => ({ ...prev, images: [...prev.images, url] }));
+      }
     }
   };
 
@@ -177,7 +184,11 @@ const AdminDashboard = () => {
     const file = files[0];
     const url = await uploadImageToCloudinary(file);
     if (url) {
-      setNewArtwork((prev) => ({ ...prev, image: url }));
+      if (editArtwork) {
+        setEditArtwork((prev) => prev ? ({ ...prev, image: url }) : null);
+      } else {
+        setNewArtwork((prev) => ({ ...prev, image: url }));
+      }
     }
   };
 
@@ -187,7 +198,11 @@ const AdminDashboard = () => {
     const file = files[0];
     const url = await uploadImageToCloudinary(file);
     if (url) {
-      setNewBlogPost((prev) => ({ ...prev, image: url }));
+      if (editBlogPost) {
+        setEditBlogPost((prev) => prev ? ({ ...prev, image: url }) : null);
+      } else {
+        setNewBlogPost((prev) => ({ ...prev, image: url }));
+      }
     }
   };
 
@@ -222,6 +237,38 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleUpdateProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editProject?.title || !editProject?.category || !editProject?.images.length || !editProject?.description) {
+      alert('Please fill in title, category, at least one image, and description.');
+      return;
+    }
+    try {
+      const response = await fetch(`http://localhost:5000/api/projects/${editProject.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editProject),
+      });
+      if (!response.ok) throw new Error('Failed to update project');
+      const updatedProject = await response.json();
+      setProjects(projects.map((p) => (p.id === updatedProject.id ? updatedProject : p)));
+      setEditProject(null);
+      setNewProject({
+        id: Date.now().toString(),
+        title: '',
+        category: '',
+        images: [],
+        description: '',
+        client: '',
+        year: new Date().getFullYear().toString(),
+        role: '',
+        aspect_ratio: '1/1',
+      });
+    } catch (error) {
+      alert(`Error updating project: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
   const handleAddArtwork = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newArtwork.title || !newArtwork.artist || !newArtwork.image || !newArtwork.description) {
@@ -250,6 +297,38 @@ const AdminDashboard = () => {
       });
     } catch (error) {
       alert(`Error saving artwork: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  const handleUpdateArtwork = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editArtwork?.title || !editArtwork?.artist || !editArtwork?.image || !editArtwork?.description) {
+      alert('Please fill in title, artist, image, and description.');
+      return;
+    }
+    try {
+      const response = await fetch(`http://localhost:5000/api/artworks/${editArtwork.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editArtwork),
+      });
+      if (!response.ok) throw new Error('Failed to update artwork');
+      const updatedArtwork = await response.json();
+      setArtworks(artworks.map((a) => (a.id === updatedArtwork.id ? updatedArtwork : a)));
+      setEditArtwork(null);
+      setNewArtwork({
+        id: Date.now().toString(),
+        title: '',
+        artist: '',
+        image: '',
+        description: '',
+        year: new Date().getFullYear().toString(),
+        medium: '',
+        dimensions: '',
+        status: 'approved',
+      });
+    } catch (error) {
+      alert(`Error updating artwork: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -283,6 +362,37 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleUpdateBlogPost = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editBlogPost?.title || !editBlogPost?.content || !editBlogPost?.image) {
+      alert('Please fill in title, content, and image.');
+      return;
+    }
+    try {
+      const response = await fetch(`http://localhost:5000/api/blog-posts/${editBlogPost.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editBlogPost),
+      });
+      if (!response.ok) throw new Error('Failed to update blog post');
+      const updatedBlogPost = await response.json();
+      setBlogPosts(blogPosts.map((p) => (p.id === updatedBlogPost.id ? updatedBlogPost : p)));
+      setEditBlogPost(null);
+      setNewBlogPost({
+        id: Date.now().toString(),
+        title: '',
+        date: new Date().toISOString().split('T')[0],
+        tags: [],
+        readTime: '',
+        excerpt: '',
+        image: '',
+        content: '',
+      });
+    } catch (error) {
+      alert(`Error updating blog post: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
   const handleApproveArtwork = async (artwork: Artwork) => {
     try {
       const updatedArtwork = { ...artwork, status: 'approved' as const };
@@ -306,6 +416,7 @@ const AdminDashboard = () => {
       });
       if (!response.ok) throw new Error('Failed to reject artwork');
       setPendingArtworks(pendingArtworks.filter((a) => a.id !== artworkId));
+      setArtworks(artworks.filter((a) => a.id !== artworkId));
     } catch (error) {
       alert(`Error rejecting artwork: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
@@ -333,6 +444,59 @@ const AdminDashboard = () => {
     } catch (error) {
       alert(`Error deleting blog post: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+  };
+
+  const handleEditProject = (project: Project) => {
+    setEditProject(project);
+    setNewProject(project);
+  };
+
+  const handleEditArtwork = (artwork: Artwork) => {
+    setEditArtwork(artwork);
+    setNewArtwork(artwork);
+  };
+
+  const handleEditBlogPost = (blogPost: BlogPost) => {
+    setEditBlogPost(blogPost);
+    setNewBlogPost(blogPost);
+  };
+
+  const cancelEdit = () => {
+    setEditProject(null);
+    setEditArtwork(null);
+    setEditBlogPost(null);
+    setNewProject({
+      id: Date.now().toString(),
+      title: '',
+      category: '',
+      images: [],
+      description: '',
+      client: '',
+      year: new Date().getFullYear().toString(),
+      role: '',
+      aspect_ratio: '1/1',
+    });
+    setNewArtwork({
+      id: Date.now().toString(),
+      title: '',
+      artist: '',
+      image: '',
+      description: '',
+      year: new Date().getFullYear().toString(),
+      medium: '',
+      dimensions: '',
+      status: 'approved',
+    });
+    setNewBlogPost({
+      id: Date.now().toString(),
+      title: '',
+      date: new Date().toISOString().split('T')[0],
+      tags: [],
+      readTime: '',
+      excerpt: '',
+      image: '',
+      content: '',
+    });
   };
 
   if (isLoading) {
@@ -395,14 +559,22 @@ const AdminDashboard = () => {
             {/* Portfolio Tab */}
             {activeTab === 'Portfolio' && (
               <div>
-                <h2 className="text-2xl font-semibold mb-6">Manage Portfolio Projects</h2>
-                <form onSubmit={handleAddProject} className="bg-vansiii-white p-6 rounded-lg shadow space-y-4 mb-12">
+                <h2 className="text-2xl font-semibold mb-6">
+                  {editProject ? 'Edit Portfolio Project' : 'Add Portfolio Project'}
+                </h2>
+                <form onSubmit={editProject ? handleUpdateProject : handleAddProject} className="bg-vansiii-white p-6 rounded-lg shadow space-y-4 mb-12">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
                     <input
                       type="text"
                       value={newProject.title}
-                      onChange={(e) => setNewProject({ ...newProject, title: e.target.value })}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (editProject) {
+                          setEditProject((prev) => prev ? ({ ...prev, title: value }) : null);
+                        }
+                        setNewProject((prev) => ({ ...prev, title: value }));
+                      }}
                       className="w-full px-3 py-2 border rounded-lg"
                       placeholder="Enter project title"
                     />
@@ -412,7 +584,13 @@ const AdminDashboard = () => {
                     <input
                       type="text"
                       value={newProject.category}
-                      onChange={(e) => setNewProject({ ...newProject, category: e.target.value })}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (editProject) {
+                          setEditProject((prev) => prev ? ({ ...prev, category: value }) : null);
+                        }
+                        setNewProject((prev) => ({ ...prev, category: value }));
+                      }}
                       className="w-full px-3 py-2 border rounded-lg"
                       placeholder="e.g., UI/UX, Marketing"
                     />
@@ -426,9 +604,9 @@ const AdminDashboard = () => {
                       onChange={handleProjectImageUpload}
                       className="w-full px-3 py-2 border rounded-lg"
                     />
-                    {newProject.images.length > 0 && (
+                    {(editProject?.images || newProject.images).length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-2">
-                        {newProject.images.map((image, index) => (
+                        {(editProject?.images || newProject.images).map((image, index) => (
                           <img key={index} src={image} alt="Preview" className="w-24 h-24 object-cover rounded" />
                         ))}
                       </div>
@@ -438,7 +616,13 @@ const AdminDashboard = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                     <textarea
                       value={newProject.description}
-                      onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (editProject) {
+                          setEditProject((prev) => prev ? ({ ...prev, description: value }) : null);
+                        }
+                        setNewProject((prev) => ({ ...prev, description: value }));
+                      }}
                       className="w-full px-3 py-2 border rounded-lg"
                       rows={3}
                       placeholder="Enter project description"
@@ -448,8 +632,14 @@ const AdminDashboard = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Client</label>
                     <input
                       type="text"
-                      value={newProject.client}
-                      onChange={(e) => setNewProject({ ...newProject, client: e.target.value })}
+                      value={newProject.client || ''}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (editProject) {
+                          setEditProject((prev) => prev ? ({ ...prev, client: value }) : null);
+                        }
+                        setNewProject((prev) => ({ ...prev, client: value }));
+                      }}
                       className="w-full px-3 py-2 border rounded-lg"
                       placeholder="Client name"
                     />
@@ -458,8 +648,14 @@ const AdminDashboard = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
                     <input
                       type="text"
-                      value={newProject.year}
-                      onChange={(e) => setNewProject({ ...newProject, year: e.target.value })}
+                      value={newProject.year || ''}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (editProject) {
+                          setEditProject((prev) => prev ? ({ ...prev, year: value }) : null);
+                        }
+                        setNewProject((prev) => ({ ...prev, year: value }));
+                      }}
                       className="w-full px-3 py-2 border rounded-lg"
                       placeholder="e.g., 2024"
                     />
@@ -468,8 +664,14 @@ const AdminDashboard = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
                     <input
                       type="text"
-                      value={newProject.role}
-                      onChange={(e) => setNewProject({ ...newProject, role: e.target.value })}
+                      value={newProject.role || ''}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (editProject) {
+                          setEditProject((prev) => prev ? ({ ...prev, role: value }) : null);
+                        }
+                        setNewProject((prev) => ({ ...prev, role: value }));
+                      }}
                       className="w-full px-3 py-2 border rounded-lg"
                       placeholder="e.g., Lead Designer"
                     />
@@ -478,18 +680,35 @@ const AdminDashboard = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Aspect Ratio</label>
                     <input
                       type="text"
-                      value={newProject.aspect_ratio}
-                      onChange={(e) => setNewProject({ ...newProject, aspect_ratio: e.target.value })}
+                      value={newProject.aspect_ratio || ''}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (editProject) {
+                          setEditProject((prev) => prev ? ({ ...prev, aspect_ratio: value }) : null);
+                        }
+                        setNewProject((prev) => ({ ...prev, aspect_ratio: value }));
+                      }}
                       className="w-full px-3 py-2 border rounded-lg"
                       placeholder="e.g., 1/1, 4/5"
                     />
                   </div>
-                  <button
-                    type="submit"
-                    className="flex items-center gap-2 bg-vansiii-accent text-vansiii-white px-6 py-3 rounded-lg hover:accent-bg transition-colors"
-                  >
-                    <Plus className="w-5 h-5" /> Add Project
-                  </button>
+                  <div className="flex gap-4">
+                    <button
+                      type="submit"
+                      className="flex items-center gap-2 bg-vansiii-accent text-vansiii-white px-6 py-3 rounded-lg hover:accent-bg transition-colors"
+                    >
+                      <Plus className="w-5 h-5" /> {editProject ? 'Update Project' : 'Add Project'}
+                    </button>
+                    {editProject && (
+                      <button
+                        type="button"
+                        onClick={cancelEdit}
+                        className="flex items-center gap-2 bg-gray-500 text-vansiii-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-colors"
+                      >
+                        <X className="w-5 h-5" /> Cancel
+                      </button>
+                    )}
+                  </div>
                 </form>
 
                 <h3 className="text-xl font-semibold mb-4">Existing Projects</h3>
@@ -506,12 +725,20 @@ const AdminDashboard = () => {
                         />
                         <h3 className="text-lg font-medium text-vansiii-black">{project.title}</h3>
                         <p className="text-sm text-gray-600">{project.category}</p>
-                        <button
-                          onClick={() => handleDeleteProject(project.id)}
-                          className="flex items-center gap-2 bg-vansiii-accent text-vansiii-white px-4 py-2 rounded-lg mt-4"
-                        >
-                          <Trash2 className="w-4 h-4" /> Delete
-                        </button>
+                        <div className="flex gap-4 mt-4">
+                          <button
+                            onClick={() => handleEditProject(project)}
+                            className="flex items-center gap-2 bg-vansiii-gray text-vansiii-white px-4 py-2 rounded-lg"
+                          >
+                            <Edit2 className="w-4 h-4" /> Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteProject(project.id)}
+                            className="flex items-center gap-2 bg-vansiii-accent text-vansiii-white px-4 py-2 rounded-lg"
+                          >
+                            <Trash2 className="w-4 h-4" /> Delete
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -522,14 +749,22 @@ const AdminDashboard = () => {
             {/* Artwork Tab */}
             {activeTab === 'Artwork' && (
               <div>
-                <h2 className="text-2xl font-semibold mb-6">Manage Artwork Submissions</h2>
-                <form onSubmit={handleAddArtwork} className="bg-vansiii-white p-6 rounded-lg shadow space-y-4 mb-12">
+                <h2 className="text-2xl font-semibold mb-6">
+                  {editArtwork ? 'Edit Artwork' : 'Add Artwork'}
+                </h2>
+                <form onSubmit={editArtwork ? handleUpdateArtwork : handleAddArtwork} className="bg-vansiii-white p-6 rounded-lg shadow space-y-4 mb-12">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
                     <input
                       type="text"
                       value={newArtwork.title}
-                      onChange={(e) => setNewArtwork({ ...newArtwork, title: e.target.value })}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (editArtwork) {
+                          setEditArtwork((prev) => prev ? ({ ...prev, title: value }) : null);
+                        }
+                        setNewArtwork((prev) => ({ ...prev, title: value }));
+                      }}
                       className="w-full px-3 py-2 border rounded-lg"
                       placeholder="Enter artwork title"
                     />
@@ -539,7 +774,13 @@ const AdminDashboard = () => {
                     <input
                       type="text"
                       value={newArtwork.artist}
-                      onChange={(e) => setNewArtwork({ ...newArtwork, artist: e.target.value })}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (editArtwork) {
+                          setEditArtwork((prev) => prev ? ({ ...prev, artist: value }) : null);
+                        }
+                        setNewArtwork((prev) => ({ ...prev, artist: value }));
+                      }}
                       className="w-full px-3 py-2 border rounded-lg"
                       placeholder="Enter artist name"
                     />
@@ -552,15 +793,21 @@ const AdminDashboard = () => {
                       onChange={handleArtworkImageUpload}
                       className="w-full px-3 py-2 border rounded-lg"
                     />
-                    {newArtwork.image && (
-                      <img src={newArtwork.image} alt="Preview" className="w-full h-24 object-cover rounded mt-2" />
+                    {(editArtwork?.image || newArtwork.image) && (
+                      <img src={editArtwork?.image || newArtwork.image} alt="Preview" className="w-full h-24 object-cover rounded mt-2" />
                     )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                     <textarea
                       value={newArtwork.description}
-                      onChange={(e) => setNewArtwork({ ...newArtwork, description: e.target.value })}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (editArtwork) {
+                          setEditArtwork((prev) => prev ? ({ ...prev, description: value }) : null);
+                        }
+                        setNewArtwork((prev) => ({ ...prev, description: value }));
+                      }}
                       className="w-full px-3 py-2 border rounded-lg"
                       rows={3}
                       placeholder="Enter artwork description"
@@ -570,8 +817,14 @@ const AdminDashboard = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
                     <input
                       type="text"
-                      value={newArtwork.year}
-                      onChange={(e) => setNewArtwork({ ...newArtwork, year: e.target.value })}
+                      value={newArtwork.year || ''}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (editArtwork) {
+                          setEditArtwork((prev) => prev ? ({ ...prev, year: value }) : null);
+                        }
+                        setNewArtwork((prev) => ({ ...prev, year: value }));
+                      }}
                       className="w-full px-3 py-2 border rounded-lg"
                       placeholder="e.g., 2024"
                     />
@@ -580,8 +833,14 @@ const AdminDashboard = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Medium</label>
                     <input
                       type="text"
-                      value={newArtwork.medium}
-                      onChange={(e) => setNewArtwork({ ...newArtwork, medium: e.target.value })}
+                      value={newArtwork.medium || ''}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (editArtwork) {
+                          setEditArtwork((prev) => prev ? ({ ...prev, medium: value }) : null);
+                        }
+                        setNewArtwork((prev) => ({ ...prev, medium: value }));
+                      }}
                       className="w-full px-3 py-2 border rounded-lg"
                       placeholder="e.g., Oil on Canvas"
                     />
@@ -590,18 +849,35 @@ const AdminDashboard = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Dimensions</label>
                     <input
                       type="text"
-                      value={newArtwork.dimensions}
-                      onChange={(e) => setNewArtwork({ ...newArtwork, dimensions: e.target.value })}
+                      value={newArtwork.dimensions || ''}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (editArtwork) {
+                          setEditArtwork((prev) => prev ? ({ ...prev, dimensions: value }) : null);
+                        }
+                        setNewArtwork((prev) => ({ ...prev, dimensions: value }));
+                      }}
                       className="w-full px-3 py-2 border rounded-lg"
                       placeholder="e.g., 24x36 in"
                     />
                   </div>
-                  <button
-                    type="submit"
-                    className="flex items-center gap-2 bg-vansiii-accent text-vansiii-white px-6 py-3 rounded-lg hover:accent-bg transition-colors"
-                  >
-                    <Plus className="w-5 h-5" /> Add Artwork
-                  </button>
+                  <div className="flex gap-4">
+                    <button
+                      type="submit"
+                      className="flex items-center gap-2 bg-vansiii-accent text-vansiii-white px-6 py-3 rounded-lg hover:accent-bg transition-colors"
+                    >
+                      <Plus className="w-5 h-5" /> {editArtwork ? 'Update Artwork' : 'Add Artwork'}
+                    </button>
+                    {editArtwork && (
+                      <button
+                        type="button"
+                        onClick={cancelEdit}
+                        className="flex items-center gap-2 bg-gray-500 text-vansiii-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-colors"
+                      >
+                        <X className="w-5 h-5" /> Cancel
+                      </button>
+                    )}
+                  </div>
                 </form>
 
                 <h3 className="text-xl font-semibold mb-4">Pending Submissions</h3>
@@ -643,12 +919,20 @@ const AdminDashboard = () => {
                         <img src={artwork.image} alt={artwork.title} className="w-full h-40 object-cover rounded mb-4" />
                         <h3 className="text-lg font-medium text-vansiii-black">{artwork.title}</h3>
                         <p className="text-sm text-gray-600">{artwork.artist}</p>
-                        <button
-                          onClick={() => handleRejectArtwork(artwork.id)}
-                          className="flex items-center gap-2 bg-vansiii-accent text-vansiii-white px-4 py-2 rounded-lg mt-4"
-                        >
-                          <Trash2 className="w-4 h-4" /> Delete
-                        </button>
+                        <div className="flex gap-4 mt-4">
+                          <button
+                            onClick={() => handleEditArtwork(artwork)}
+                            className="flex items-center gap-2 bg-vansiii-gray text-vansiii-white px-4 py-2 rounded-lg"
+                          >
+                            <Edit2 className="w-4 h-4" /> Edit
+                          </button>
+                          <button
+                            onClick={() => handleRejectArtwork(artwork.id)}
+                            className="flex items-center gap-2 bg-vansiii-accent text-vansiii-white px-4 py-2 rounded-lg"
+                          >
+                            <Trash2 className="w-4 h-4" /> Delete
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -659,14 +943,22 @@ const AdminDashboard = () => {
             {/* Blog Tab */}
             {activeTab === 'Blog' && (
               <div>
-                <h2 className="text-2xl font-semibold mb-6">Manage Blog Posts</h2>
-                <form onSubmit={handleAddBlogPost} className="bg-vansiii-white p-6 rounded-lg shadow space-y-4 mb-12">
+                <h2 className="text-2xl font-semibold mb-6">
+                  {editBlogPost ? 'Edit Blog Post' : 'Add Blog Post'}
+                </h2>
+                <form onSubmit={editBlogPost ? handleUpdateBlogPost : handleAddBlogPost} className="bg-vansiii-white p-6 rounded-lg shadow space-y-4 mb-12">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
                     <input
                       type="text"
                       value={newBlogPost.title}
-                      onChange={(e) => setNewBlogPost({ ...newBlogPost, title: e.target.value })}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (editBlogPost) {
+                          setEditBlogPost((prev) => prev ? ({ ...prev, title: value }) : null);
+                        }
+                        setNewBlogPost((prev) => ({ ...prev, title: value }));
+                      }}
                       className="w-full px-3 py-2 border rounded-lg"
                       placeholder="Enter blog title"
                     />
@@ -679,15 +971,21 @@ const AdminDashboard = () => {
                       onChange={handleBlogImageUpload}
                       className="w-full px-3 py-2 border rounded-lg"
                     />
-                    {newBlogPost.image && (
-                      <img src={newBlogPost.image} alt="Preview" className="w-full h-24 object-cover rounded mt-2" />
+                    {(editBlogPost?.image || newBlogPost.image) && (
+                      <img src={editBlogPost?.image || newBlogPost.image} alt="Preview" className="w-full h-24 object-cover rounded mt-2" />
                     )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Excerpt</label>
                     <textarea
                       value={newBlogPost.excerpt}
-                      onChange={(e) => setNewBlogPost({ ...newBlogPost, excerpt: e.target.value })}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (editBlogPost) {
+                          setEditBlogPost((prev) => prev ? ({ ...prev, excerpt: value }) : null);
+                        }
+                        setNewBlogPost((prev) => ({ ...prev, excerpt: value }));
+                      }}
                       className="w-full px-3 py-2 border rounded-lg"
                       rows={3}
                       placeholder="Enter blog excerpt"
@@ -697,7 +995,13 @@ const AdminDashboard = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Content (HTML)</label>
                     <textarea
                       value={newBlogPost.content}
-                      onChange={(e) => setNewBlogPost({ ...newBlogPost, content: e.target.value })}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (editBlogPost) {
+                          setEditBlogPost((prev) => prev ? ({ ...prev, content: value }) : null);
+                        }
+                        setNewBlogPost((prev) => ({ ...prev, content: value }));
+                      }}
                       className="w-full px-3 py-2 border rounded-lg"
                       rows={6}
                       placeholder="Enter blog content (HTML)"
@@ -708,9 +1012,13 @@ const AdminDashboard = () => {
                     <input
                       type="text"
                       value={newBlogPost.tags.join(',')}
-                      onChange={(e) =>
-                        setNewBlogPost({ ...newBlogPost, tags: e.target.value.split(',').map((tag) => tag.trim()) })
-                      }
+                      onChange={(e) => {
+                        const value = e.target.value.split(',').map((tag) => tag.trim());
+                        if (editBlogPost) {
+                          setEditBlogPost((prev) => prev ? ({ ...prev, tags: value }) : null);
+                        }
+                        setNewBlogPost((prev) => ({ ...prev, tags: value }));
+                      }}
                       className="w-full px-3 py-2 border rounded-lg"
                       placeholder="e.g., tech, design, art"
                     />
@@ -719,18 +1027,35 @@ const AdminDashboard = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Read Time</label>
                     <input
                       type="text"
-                      value={newBlogPost.readTime}
-                      onChange={(e) => setNewBlogPost({ ...newBlogPost, readTime: e.target.value })}
+                      value={newBlogPost.readTime || ''}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (editBlogPost) {
+                          setEditBlogPost((prev) => prev ? ({ ...prev, readTime: value }) : null);
+                        }
+                        setNewBlogPost((prev) => ({ ...prev, readTime: value }));
+                      }}
                       className="w-full px-3 py-2 border rounded-lg"
                       placeholder="e.g., 5 min read"
                     />
                   </div>
-                  <button
-                    type="submit"
-                    className="flex items-center gap-2 bg-vansiii-accent text-vansiii-white px-6 py-3 rounded-lg hover:accent-bg transition-colors"
-                  >
-                    <Plus className="w-5 h-5" /> Add Blog Post
-                  </button>
+                  <div className="flex gap-4">
+                    <button
+                      type="submit"
+                      className="flex items-center gap-2 bg-vansiii-accent text-vansiii-white px-6 py-3 rounded-lg hover:accent-bg transition-colors"
+                    >
+                      <Plus className="w-5 h-5" /> {editBlogPost ? 'Update Blog Post' : 'Add Blog Post'}
+                    </button>
+                    {editBlogPost && (
+                      <button
+                        type="button"
+                        onClick={cancelEdit}
+                        className="flex items-center gap-2 bg-gray-500 text-vansiii-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-colors"
+                      >
+                        <X className="w-5 h-5" /> Cancel
+                      </button>
+                    )}
+                  </div>
                 </form>
 
                 <h3 className="text-xl font-semibold mb-4">Existing Blog Posts</h3>
@@ -743,12 +1068,20 @@ const AdminDashboard = () => {
                         <img src={post.image} alt={post.title} className="w-full h-40 object-cover rounded mb-4" />
                         <h3 className="text-lg font-medium text-vansiii-black">{post.title}</h3>
                         <p className="text-sm text-gray-600">{post.date}</p>
-                        <button
-                          onClick={() => handleDeleteBlogPost(post.id)}
-                          className="flex items-center gap-2 bg-vansiii-accent text-vansiii-white px-4 py-2 rounded-lg mt-4"
-                        >
-                          <Trash2 className="w-4 h-4" /> Delete
-                        </button>
+                        <div className="flex gap-4 mt-4">
+                          <button
+                            onClick={() => handleEditBlogPost(post)}
+                            className="flex items-center gap-2 bg-vansiii-gray text-vansiii-white px-4 py-2 rounded-lg"
+                          >
+                            <Edit2 className="w-4 h-4" /> Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteBlogPost(post.id)}
+                            className="flex items-center gap-2 bg-vansiii-accent text-vansiii-white px-4 py-2 rounded-lg"
+                          >
+                            <Trash2 className="w-4 h-4" /> Delete
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
