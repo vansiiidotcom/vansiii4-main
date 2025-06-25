@@ -22,7 +22,7 @@ const teamMembers: TeamMember[] = [
    id: 1,
    name: "Vanshika Wadhwa",
    role: "CEO",
-   image: "src/assets/images/vanshika wadhwa.jpg",
+   image: "src/assets/images/vanshika_wadhwa.jpg",
    bio: "Vanshika Wadhwa, CEO of Vansiii, is a multidisciplinary creative turned visionary leader. With roots in art, content writing, and graphic design, she now drives strategic branding and digital storytelling at Vansiii, blending creativity with clarity to help brands connect, convert, and thrive in the ever-evolving digital landscape.",
    skills: ["Brand Strategy", "Art Direction", "Team Leadership"],
    social: {

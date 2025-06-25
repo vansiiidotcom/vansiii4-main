@@ -11,7 +11,7 @@ const Home = () => {
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.8, ease: 'easeOut' }}
-          src="src/assets/images/og mascot.jpg"
+          src="src/assets/images/og_mascot.jpg"
           alt="Vansiii Mascot"
           className="mb-8 max-w-[80vw] h-auto object-contain w-full sm:max-w-[500px] max-h-[50vh] sm:max-h-[450px] mr-8"
         />
