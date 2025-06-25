@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { Trash2, Check, X, Plus } from 'lucide-react';
 
 interface Project {
-  id: number;
+  id: string;
   title: string;
   category: string;
   images: string[];
@@ -17,7 +17,7 @@ interface Project {
 }
 
 interface Artwork {
-  id: number;
+  id: string;
   title: string;
   artist: string;
   image: string;
@@ -29,7 +29,7 @@ interface Artwork {
 }
 
 interface BlogPost {
-  id: number;
+  id: string;
   title: string;
   date: string;
   tags: string[];
@@ -43,24 +43,12 @@ const AdminDashboard = () => {
   const { isAdmin, logout, isLoading } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'Portfolio' | 'Artwork' | 'Blog'>('Portfolio');
-  const [projects, setProjects] = useState<Project[]>(() => {
-    const saved = localStorage.getItem('portfolio_projects');
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [artworks, setArtworks] = useState<Artwork[]>(() => {
-    const saved = localStorage.getItem('art_gallery');
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [pendingArtworks, setPendingArtworks] = useState<Artwork[]>(() => {
-    const saved = localStorage.getItem('pending_artworks');
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [blogPosts, setBlogPosts] = useState<BlogPost[]>(() => {
-    const saved = localStorage.getItem('blog_posts');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [artworks, setArtworks] = useState<Artwork[]>([]);
+  const [pendingArtworks, setPendingArtworks] = useState<Artwork[]>([]);
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [newProject, setNewProject] = useState<Project>({
-    id: Date.now(),
+    id: Date.now().toString(),
     title: '',
     category: '',
     images: [],
@@ -71,7 +59,7 @@ const AdminDashboard = () => {
     aspect_ratio: '1/1',
   });
   const [newArtwork, setNewArtwork] = useState<Artwork>({
-    id: Date.now(),
+    id: Date.now().toString(),
     title: '',
     artist: '',
     image: '',
@@ -82,7 +70,7 @@ const AdminDashboard = () => {
     status: 'approved',
   });
   const [newBlogPost, setNewBlogPost] = useState<BlogPost>({
-    id: Date.now(),
+    id: Date.now().toString(),
     title: '',
     date: new Date().toISOString().split('T')[0],
     tags: [],
@@ -98,21 +86,49 @@ const AdminDashboard = () => {
     }
   }, [isAdmin, isLoading, navigate]);
 
-  // Save projects to localStorage
+  // Fetch data from backend
   useEffect(() => {
-    localStorage.setItem('portfolio_projects', JSON.stringify(projects));
-  }, [projects]);
+    const fetchProjects = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/projects');
+        if (!response.ok) throw new Error('Failed to fetch projects');
+        const data = await response.json();
+        setProjects(data);
+      } catch (error) {
+        console.error('Error fetching projects:', error);
+        alert('Failed to load projects');
+      }
+    };
 
-  // Save artworks to localStorage
-  useEffect(() => {
-    localStorage.setItem('art_gallery', JSON.stringify(artworks));
-    localStorage.setItem('pending_artworks', JSON.stringify(pendingArtworks));
-  }, [artworks, pendingArtworks]);
+    const fetchArtworks = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/artworks');
+        if (!response.ok) throw new Error('Failed to fetch artworks');
+        const data = await response.json();
+        setArtworks(data.filter((a: Artwork) => a.status === 'approved'));
+        setPendingArtworks(data.filter((a: Artwork) => a.status === 'pending'));
+      } catch (error) {
+        console.error('Error fetching artworks:', error);
+        alert('Failed to load artworks');
+      }
+    };
 
-  // Save blog posts to localStorage
-  useEffect(() => {
-    localStorage.setItem('blog_posts', JSON.stringify(blogPosts));
-  }, [blogPosts]);
+    const fetchBlogPosts = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/blog-posts');
+        if (!response.ok) throw new Error('Failed to fetch blog posts');
+        const data = await response.json();
+        setBlogPosts(data);
+      } catch (error) {
+        console.error('Error fetching blog posts:', error);
+        alert('Failed to load blog posts');
+      }
+    };
+
+    fetchProjects();
+    fetchArtworks();
+    fetchBlogPosts();
+  }, []);
 
   const uploadImageToCloudinary = async (file: File): Promise<string | undefined> => {
     if (!file.type.startsWith('image/jpeg') && !file.type.startsWith('image/png')) {
@@ -127,8 +143,7 @@ const AdminDashboard = () => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('upload_preset', 'portfolio_upload');
-    formData.append('api_key', import.meta.env.VITE_CLOUDINARY_API_KEY);
-    formData.append('cloud_name', 'vansiii');
+    formData.append('folder', `portfolio/${activeTab.toLowerCase()}`); // Store in respective folders
 
     try {
       const response = await fetch('https://api.cloudinary.com/v1_1/vansiii/image/upload', {
@@ -182,18 +197,29 @@ const AdminDashboard = () => {
       alert('Please fill in title, category, at least one image, and description.');
       return;
     }
-    setProjects([...projects, newProject]);
-    setNewProject({
-      id: Date.now(),
-      title: '',
-      category: '',
-      images: [],
-      description: '',
-      client: '',
-      year: new Date().getFullYear().toString(),
-      role: '',
-      aspect_ratio: '1/1',
-    });
+    try {
+      const response = await fetch('http://localhost:5000/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newProject),
+      });
+      if (!response.ok) throw new Error('Failed to save project');
+      const savedProject = await response.json();
+      setProjects([...projects, savedProject]);
+      setNewProject({
+        id: Date.now().toString(),
+        title: '',
+        category: '',
+        images: [],
+        description: '',
+        client: '',
+        year: new Date().getFullYear().toString(),
+        role: '',
+        aspect_ratio: '1/1',
+      });
+    } catch (error) {
+      alert(`Error saving project: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
 
   const handleAddArtwork = async (e: React.FormEvent) => {
@@ -202,18 +228,29 @@ const AdminDashboard = () => {
       alert('Please fill in title, artist, image, and description.');
       return;
     }
-    setArtworks([...artworks, newArtwork]);
-    setNewArtwork({
-      id: Date.now(),
-      title: '',
-      artist: '',
-      image: '',
-      description: '',
-      year: new Date().getFullYear().toString(),
-      medium: '',
-      dimensions: '',
-      status: 'approved',
-    });
+    try {
+      const response = await fetch('http://localhost:5000/api/artworks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newArtwork),
+      });
+      if (!response.ok) throw new Error('Failed to save artwork');
+      const savedArtwork = await response.json();
+      setArtworks([...artworks, savedArtwork]);
+      setNewArtwork({
+        id: Date.now().toString(),
+        title: '',
+        artist: '',
+        image: '',
+        description: '',
+        year: new Date().getFullYear().toString(),
+        medium: '',
+        dimensions: '',
+        status: 'approved',
+      });
+    } catch (error) {
+      alert(`Error saving artwork: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
 
   const handleAddBlogPost = async (e: React.FormEvent) => {
@@ -222,35 +259,80 @@ const AdminDashboard = () => {
       alert('Please fill in title, content, and image.');
       return;
     }
-    setBlogPosts([...blogPosts, newBlogPost]);
-    setNewBlogPost({
-      id: Date.now(),
-      title: '',
-      date: new Date().toISOString().split('T')[0],
-      tags: [],
-      readTime: '',
-      excerpt: '',
-      image: '',
-      content: '',
-    });
+    try {
+      const response = await fetch('http://localhost:5000/api/blog-posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newBlogPost),
+      });
+      if (!response.ok) throw new Error('Failed to save blog post');
+      const savedBlogPost = await response.json();
+      setBlogPosts([...blogPosts, savedBlogPost]);
+      setNewBlogPost({
+        id: Date.now().toString(),
+        title: '',
+        date: new Date().toISOString().split('T')[0],
+        tags: [],
+        readTime: '',
+        excerpt: '',
+        image: '',
+        content: '',
+      });
+    } catch (error) {
+      alert(`Error saving blog post: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
 
-  const handleApproveArtwork = (artwork: Artwork) => {
-    const updatedArtwork = { ...artwork, status: 'approved' as const };
-    setArtworks([...artworks, updatedArtwork]);
-    setPendingArtworks(pendingArtworks.filter((a) => a.id !== artwork.id));
+  const handleApproveArtwork = async (artwork: Artwork) => {
+    try {
+      const updatedArtwork = { ...artwork, status: 'approved' as const };
+      const response = await fetch(`http://localhost:5000/api/artworks/${artwork.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedArtwork),
+      });
+      if (!response.ok) throw new Error('Failed to approve artwork');
+      setArtworks([...artworks, updatedArtwork]);
+      setPendingArtworks(pendingArtworks.filter((a) => a.id !== artwork.id));
+    } catch (error) {
+      alert(`Error approving artwork: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
 
-  const handleRejectArtwork = (artworkId: number) => {
-    setPendingArtworks(pendingArtworks.filter((a) => a.id !== artworkId));
+  const handleRejectArtwork = async (artworkId: string) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/artworks/${artworkId}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error('Failed to reject artwork');
+      setPendingArtworks(pendingArtworks.filter((a) => a.id !== artworkId));
+    } catch (error) {
+      alert(`Error rejecting artwork: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
 
-  const handleDeleteProject = (projectId: number) => {
-    setProjects(projects.filter((p) => p.id !== projectId));
+  const handleDeleteProject = async (projectId: string) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/projects/${projectId}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error('Failed to delete project');
+      setProjects(projects.filter((p) => p.id !== projectId));
+    } catch (error) {
+      alert(`Error deleting project: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
 
-  const handleDeleteBlogPost = (postId: number) => {
-    setBlogPosts(blogPosts.filter((p) => p.id !== postId));
+  const handleDeleteBlogPost = async (postId: string) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/blog-posts/${postId}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error('Failed to delete blog post');
+      setBlogPosts(blogPosts.filter((p) => p.id !== postId));
+    } catch (error) {
+      alert(`Error deleting blog post: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
 
   if (isLoading) {
@@ -292,7 +374,7 @@ const AdminDashboard = () => {
                 onClick={() => setActiveTab(tab as 'Portfolio' | 'Artwork' | 'Blog')}
                 className={`px-6 py-3 text-lg font-medium transition-colors ${
                   activeTab === tab
-                    ? 'border-b-2 border-vansiii-accent text-vansiii-accent'
+                    ? 'border-b-2 border-vansiii-gray text-vansiii-gray'
                     : 'text-gray-600 hover:text-vansiii-black'
                 }`}
               >
@@ -346,8 +428,8 @@ const AdminDashboard = () => {
                     />
                     {newProject.images.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-2">
-                        {newProject.images.map((url, index) => (
-                          <img key={index} src={url} alt="Preview" className="w-24 h-24 object-cover rounded" />
+                        {newProject.images.map((image, index) => (
+                          <img key={index} src={image} alt="Preview" className="w-24 h-24 object-cover rounded" />
                         ))}
                       </div>
                     )}
@@ -369,7 +451,7 @@ const AdminDashboard = () => {
                       value={newProject.client}
                       onChange={(e) => setNewProject({ ...newProject, client: e.target.value })}
                       className="w-full px-3 py-2 border rounded-lg"
-                      placeholder="Enter client name"
+                      placeholder="Client name"
                     />
                   </div>
                   <div>
@@ -415,24 +497,24 @@ const AdminDashboard = () => {
                   <p className="text-gray-600">No projects available.</p>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {projects.map((project) => (
-                    <div key={project.id} className="bg-vansiii-white p-4 rounded-lg shadow">
-                      <img
-                        src={project.images[0] || 'https://via.placeholder.com/150'}
-                        alt={project.title}
-                        className="w-full h-40 object-cover rounded mb-4"
-                      />
-                      <h3 className="text-lg font-medium text-vansiii-black">{project.title}</h3>
-                      <p className="text-sm text-gray-600">{project.category}</p>
-                      <button
-                        onClick={() => handleDeleteProject(project.id)}
-                        className="flex items-center gap-2 bg-vansiii-accent text-vansiii-white px-4 py-2 rounded-lg mt-4"
-                      >
-                        <Trash2 className="w-4 h-4" /> Delete
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                    {projects.map((project) => (
+                      <div key={project.id} className="bg-vansiii-white p-4 rounded-lg shadow">
+                        <img
+                          src={project.images[0] || 'https://via.placeholder.com/150'}
+                          alt={project.title}
+                          className="w-full h-40 object-cover rounded mb-4"
+                        />
+                        <h3 className="text-lg font-medium text-vansiii-black">{project.title}</h3>
+                        <p className="text-sm text-gray-600">{project.category}</p>
+                        <button
+                          onClick={() => handleDeleteProject(project.id)}
+                          className="flex items-center gap-2 bg-vansiii-accent text-vansiii-white px-4 py-2 rounded-lg mt-4"
+                        >
+                          <Trash2 className="w-4 h-4" /> Delete
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             )}
@@ -511,15 +593,15 @@ const AdminDashboard = () => {
                       value={newArtwork.dimensions}
                       onChange={(e) => setNewArtwork({ ...newArtwork, dimensions: e.target.value })}
                       className="w-full px-3 py-2 border rounded-lg"
-                      placeholder="e.g., 1920x1080 px"
+                      placeholder="e.g., 24x36 in"
                     />
                   </div>
                   <button
-                  type="submit"
-                  className="flex items-center gap-2 bg-vansiii-accent text-vansiii-white px-6 py-3 rounded-lg hover:accent-bg transition-colors"
-                >
-                  <Plus className="w-5 h-5" /> Add Artwork
-                </button>
+                    type="submit"
+                    className="flex items-center gap-2 bg-vansiii-accent text-vansiii-white px-6 py-3 rounded-lg hover:accent-bg transition-colors"
+                  >
+                    <Plus className="w-5 h-5" /> Add Artwork
+                  </button>
                 </form>
 
                 <h3 className="text-xl font-semibold mb-4">Pending Submissions</h3>
@@ -527,28 +609,28 @@ const AdminDashboard = () => {
                   <p className="text-gray-600">No pending artworks.</p>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {pendingArtworks.map((artwork) => (
-                    <div key={artwork.id} className="bg-vansiii-white p-4 rounded-lg shadow">
-                      <img src={artwork.image} alt={artwork.title} className="w-full h-40 object-cover rounded mb-4" />
-                      <h3 className="text-lg font-medium text-vansiii-black">{artwork.title}</h3>
-                      <p className="text-sm text-gray-600">{artwork.artist}</p>
-                      <div className="flex gap-4 mt-4">
-                        <button
-                          onClick={() => handleApproveArtwork(artwork)}
-                          className="flex items-center gap-2 bg-vansiii-success text-vansiii-white px-4 py-2 rounded-lg"
-                        >
-                          <Check className="w-4 h-4" /> Approve
-                        </button>
-                        <button
-                          onClick={() => handleRejectArtwork(artwork.id)}
-                          className="flex items-center gap-2 bg-vansiii-accent text-vansiii-white px-4 py-2 rounded-lg"
-                        >
-                          <X className="w-4 h-4" /> Reject
-                        </button>
+                    {pendingArtworks.map((artwork) => (
+                      <div key={artwork.id} className="bg-vansiii-white p-4 rounded-lg shadow">
+                        <img src={artwork.image} alt={artwork.title} className="w-full h-40 object-cover rounded mb-4" />
+                        <h3 className="text-lg font-medium text-vansiii-black">{artwork.title}</h3>
+                        <p className="text-sm text-gray-600">{artwork.artist}</p>
+                        <div className="flex gap-4 mt-4">
+                          <button
+                            onClick={() => handleApproveArtwork(artwork)}
+                            className="flex items-center gap-2 bg-vansiii-success text-vansiii-white px-4 py-2 rounded-lg"
+                          >
+                            <Check className="w-4 h-4" /> Approve
+                          </button>
+                          <button
+                            onClick={() => handleRejectArtwork(artwork.id)}
+                            className="flex items-center gap-2 bg-vansiii-accent text-vansiii-white px-4 py-2 rounded-lg"
+                          >
+                            <X className="w-4 h-4" /> Reject
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
                 )}
 
                 <h3 className="text-xl font-semibold mb-4 mt-8">Approved Artworks</h3>
@@ -556,20 +638,20 @@ const AdminDashboard = () => {
                   <p className="text-gray-600">No approved artworks.</p>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {artworks.map((artwork) => (
-                    <div key={artwork.id} className="bg-vansiii-white p-4 rounded-lg shadow">
-                      <img src={artwork.image} alt={artwork.title} className="w-full h-40 object-cover rounded mb-4" />
-                      <h3 className="text-lg font-medium text-vansiii-black">{artwork.title}</h3>
-                      <p className="text-sm text-gray-600">{artwork.artist}</p>
-                      <button
-                        onClick={() => setArtworks(artworks.filter((a) => a.id !== artwork.id))}
-                        className="flex items-center gap-2 bg-vansiii-accent text-vansiii-white px-4 py-2 rounded-lg mt-4"
-                      >
-                        <Trash2 className="w-4 h-4" /> Delete
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                    {artworks.map((artwork) => (
+                      <div key={artwork.id} className="bg-vansiii-white p-4 rounded-lg shadow">
+                        <img src={artwork.image} alt={artwork.title} className="w-full h-40 object-cover rounded mb-4" />
+                        <h3 className="text-lg font-medium text-vansiii-black">{artwork.title}</h3>
+                        <p className="text-sm text-gray-600">{artwork.artist}</p>
+                        <button
+                          onClick={() => handleRejectArtwork(artwork.id)}
+                          className="flex items-center gap-2 bg-vansiii-accent text-vansiii-white px-4 py-2 rounded-lg mt-4"
+                        >
+                          <Trash2 className="w-4 h-4" /> Delete
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             )}
@@ -644,11 +726,11 @@ const AdminDashboard = () => {
                     />
                   </div>
                   <button
-                  type="submit"
-                  className="flex items-center gap-2 bg-vansiii-accent text-vansiii-white px-6 py-3 rounded-lg hover:accent-bg transition-colors"
-                >
-                  <Plus className="w-5 h-5" /> Add Blog Post
-                </button>
+                    type="submit"
+                    className="flex items-center gap-2 bg-vansiii-accent text-vansiii-white px-6 py-3 rounded-lg hover:accent-bg transition-colors"
+                  >
+                    <Plus className="w-5 h-5" /> Add Blog Post
+                  </button>
                 </form>
 
                 <h3 className="text-xl font-semibold mb-4">Existing Blog Posts</h3>
@@ -656,20 +738,20 @@ const AdminDashboard = () => {
                   <p className="text-gray-600">No blog posts available.</p>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {blogPosts.map((post) => (
-                    <div key={post.id} className="bg-vansiii-white p-4 rounded-lg shadow">
-                      <img src={post.image} alt={post.title} className="w-full h-40 object-cover rounded mb-4" />
-                      <h3 className="text-lg font-medium text-vansiii-black">{post.title}</h3>
-                      <p className="text-sm text-gray-600">{post.date}</p>
-                      <button
-                        onClick={() => handleDeleteBlogPost(post.id)}
-                        className="flex items-center gap-2 bg-vansiii-accent text-vansiii-white px-4 py-2 rounded-lg mt-4"
-                      >
-                        <Trash2 className="w-4 h-4" /> Delete
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                    {blogPosts.map((post) => (
+                      <div key={post.id} className="bg-vansiii-white p-4 rounded-lg shadow">
+                        <img src={post.image} alt={post.title} className="w-full h-40 object-cover rounded mb-4" />
+                        <h3 className="text-lg font-medium text-vansiii-black">{post.title}</h3>
+                        <p className="text-sm text-gray-600">{post.date}</p>
+                        <button
+                          onClick={() => handleDeleteBlogPost(post.id)}
+                          className="flex items-center gap-2 bg-vansiii-accent text-vansiii-white px-4 py-2 rounded-lg mt-4"
+                        >
+                          <Trash2 className="w-4 h-4" /> Delete
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             )}

@@ -12,6 +12,7 @@
   "dependencies": {
     "@firebasegen/default-connector": "file:dataconnect-generated/js/default-connector",
     "@supabase/supabase-js": "^2.39.7",
+    "cloudinary": "^2.7.0",
     "cloudinary-core": "^2.13.1",
     "emailjs-com": "^3.2.0",
     "framer-motion": "^12.11.0",
