@@ -1,10 +1,12 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* @tailwind base; */
+/* @tailwind components; */
+/* @tailwind utilities; */
 
 @layer base {
   body {
-    @apply bg-[#Fafaf9] text-vansiii-black font-sans;
+    background-color: #Fafaf9;
+    color: var(--vansiii-black, #000); /* fallback to black if custom property is not set */
+    font-family: 'Inter', 'Helvetica Neue', Arial, 'sans-serif';
     font-feature-settings: "salt" on, "ss01" on, "ss02" on;
   }
 }
@@ -80,26 +82,26 @@ html {
 /* Custom utility classes for Vansiii colors */
 @layer utilities {
   .accent-bg {
-    @apply bg-vansiii-accent;
+    background-color: var(--vansiii-accent, #ff5a1f);
   }
 
   .accent-text {
-    @apply text-vansiii-accent;
+    color: var(--vansiii-accent, #ff5a1f);
   }
 
   .accent-border {
-    @apply border-vansiii-accent;
+    border-color: var(--vansiii-accent, #ff5a1f);
   }
 
   .hover\:accent-bg:hover {
-    @apply bg-vansiii-accent;
+    background-color: var(--vansiii-accent, #ff5a1f);
   }
 
   .hover\:accent-text:hover {
-    @apply text-vansiii-accent;
+    color: var(--vansiii-accent, #ff5a1f);
   }
 
   .hover\:accent-border:hover {
-    @apply border-vansiii-accent;
+    border-color: var(--vansiii-accent, #ff5a1f);
   }
 }
